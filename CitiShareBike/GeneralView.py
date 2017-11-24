@@ -60,6 +60,7 @@ data2017_03 = '../data/201703-citibike-tripdata.csv'
 
 stationFile = '../data/process/station.csv'
 jsonDataDir = '../data/json/'
+pathjsonDataDir = '../data/path_json/'
 
 dataFileList = [data2013_07,data2013_08,data2013_09,data2013_10,data2013_11,data2013_12,
                 data2014_01, data2014_02, data2014_03, data2014_04, data2014_05, data2014_06,
@@ -220,25 +221,26 @@ def viewJson():
 
 # viewJson()
 
+def returnDay(x):
+    '''
+    根据一个时间，返回时间中的日期 2016-11-01 00:00:08 => 01
+    :param x:
+    :return:
+    '''
+    x = x.split(' ')[0]
+    if '/' in x:
+        x = x.split('/')[1]
+    if '-' in x:
+        x = x.split('-')[-1]
+    return x if len(x) == 2 else "0" + x
+
+
 def genHeatMapJson():
     '''
     生成绘制热力图所需要的json文件(按照日期计算)
     :return:
     '''
     print datetime.datetime.now()
-    def returnDay(x):
-        '''
-        根据一个时间，返回时间中的日期 2016-11-01 00:00:08 => 01
-        :param x:
-        :return:
-        '''
-        x = x.split(' ')[0]
-        if '/' in x:
-            x = x.split('/')[1]
-        if '-' in x:
-            x = x.split('-')[-1]
-        return x if len(x) == 2 else "0" + x
-
     stationDic = {}
     with open(stationFile,'rb') as f:
         for lineNo,line in enumerate(f):
@@ -323,4 +325,74 @@ def genHeatMapJson():
     print datetime.datetime.now()
     print "END..."
 
-genHeatMapJson()
+# genHeatMapJson()
+
+def getTop10Path():
+    '''
+    返回热力值最大的10个路径
+    :return:
+    '''
+    print datetime.datetime.now()
+    stationDic = {}
+    with open(stationFile, 'rb') as f:
+        for lineNo, line in enumerate(f):
+            if lineNo == 0:
+                continue
+            lineList = line.strip().split(',')
+            if lineList[0] in stationDic.keys():
+                print lineList[0]
+            stationDic[lineList[0]] = (float(lineList[2]), float(lineList[1]))  # 经纬度数据弄反了
+    print "站点数量：", len(stationDic.keys())
+    for no, dataFile in enumerate(dataFileList):
+        print "-" * 80
+        print no, dataFile
+        month = dataFile.split('/')[-1][:6]
+        tempDir = pathjsonDataDir + month + '/'
+        if not os.path.exists(tempDir):
+            print "当前文件夹不存在！"
+            os.mkdir(tempDir)
+
+        dataDF = pd.read_csv(dataFile)
+        if no <= 38:
+            dataDF['starttime'] = dataDF['starttime'].apply(returnDay)
+            dataDF['stoptime'] = dataDF['stoptime'].apply(returnDay)
+            pathGroupByDF = dataDF.groupby(['starttime', 'start station name','end station name'])['gender'].agg(['count'])
+
+        else:
+            dataDF = pd.read_csv(dataFile)
+            dataDF['Start Time'] = dataDF['Start Time'].apply(returnDay)
+            dataDF['Stop Time'] = dataDF['Stop Time'].apply(returnDay)
+            pathGroupByDF = dataDF.groupby(['Start Time', 'Start Station Name','End Station Name'])['Gender'].agg(['count'])
+
+        pathIndex1 = pathGroupByDF.index.levels[0]
+        # print startGroupByDF.index.levels[0]  # 多重索引遍历的写法
+        for stime in pathIndex1:  # 开始位置
+            timeDF = pathGroupByDF.loc[stime].sort_values(by=['count'],ascending=False)
+            timeDF = timeDF.head(10)
+            # print "*"*100
+
+            jsonList = []
+            for i in range(len(timeDF)):
+                tempDic = {}
+                s = timeDF.iloc[i]  # 为Series 包含name和count
+                startS = s.name[0]
+                endS = s.name[1]
+                count = s['count']
+
+                coordStart = stationDic[startS]
+                coordEnd = stationDic[endS]
+                tempDic['slng'] = coordStart[0]
+                tempDic['slat'] = coordStart[1]
+                tempDic['elng'] = coordEnd[0]
+                tempDic['elat'] = coordEnd[1]
+                tempDic['count'] = int(count)  # 必须转化成int类型 否则：TypeError: 74 is not JSON serializable
+                jsonList.append(tempDic)
+
+            jsonFileName = tempDir + stime + '_path.json'
+            with open(jsonFileName, 'wb') as f:
+                json.dump(jsonList, f)
+    print datetime.datetime.now()
+    print "END..."
+
+getTop10Path()
+

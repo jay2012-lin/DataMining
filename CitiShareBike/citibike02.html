@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html style="height: 100%">
+   <head>
+       <meta charset="utf-8">
+       <title>citi自行车使用情况热力图</title>
+       <style type="text/css">
+       	#left{width:20%;float:left;}
+       	#container_left{float:right;}
+        #container_right{float:right;}
+       </style>
+   </head>
+   <body style="height: 100%; width: 100%; margin: 0;">
+   	   <div id="left">
+        <form>
+          <label id="cdate" style="font-size:30px;">当前日期：2013-07-01</label>
+          <br />
+          <input type="date" id="in_date" value="2017-01-31"/>
+          <br />
+          <input type="button" id="in_btn" value="查看当前日期的热力图" onclick="getCurDateHeat()" />
+          <br />
+          <input type="button" id="out_btn" value="显示当日TOP 10的路径"/>
+          <br />
+          <input type="date" id="out_date" value="2017-03-31"/>
+          <br />
+          <input type="button" id="out_btn" value="生成热力图变化" onclick="getHeatChange()" />
+          <br />
+        </form>
+   	   </div>
+       <div id="container_right" style="height: 100%; width: 40%;margin: 0;"></div>
+       <div id="container_left" style="height: 100%; width: 40%;margin: 0;"></div>
+       
+       <!--style="height: 100%; width: 90%;margin: 0;"-->
+
+	   <script type="text/javascript" src="./js/jquery-1.10.2.js"></script>
+       <script type="text/javascript" src="./echarts/echarts.js"></script>
+       <script type="text/javascript" src="http://echarts.baidu.com/gallery/vendors/echarts/extension/dataTool.min.js"></script>
+       <!-- <script type="text/javascript" src="http://echarts.baidu.com/gallery/vendors/echarts/map/js/china.js"></script>
+       <script type="text/javascript" src="http://echarts.baidu.com/gallery/vendors/echarts/map/js/world.js"></script> -->
+       <script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=53oVIOgmSIejwV7EfphPgTynOZbIiVYu"></script>
+       <script type="text/javascript" src="./echarts/bmap.min.js"></script>
+       <script type="text/javascript" src="./js/citibike02.js"></script>
+   </body>
+</html>

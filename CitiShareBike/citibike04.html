@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html style="height: 100%">
+   <head>
+       <meta charset="utf-8">
+       <script type="text/javascript" src="./js/jquery-1.10.2.js"></script>
+        <script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=53oVIOgmSIejwV7EfphPgTynOZbIiVYu"></script>
+        <script type="text/javascript" src="http://api.map.baidu.com/library/Heatmap/2.0/src/Heatmap_min.js"></script>
+       <title>citi自行车使用情况热力图</title>
+       <style type="text/css">
+        #left{width:20%;float:left;}
+        #container_left{float:right;}
+        #container_right{float:right;}
+       </style>
+   </head>
+   <body style="height: 100%; width: 100%; margin: 0;">
+       <div id="left">
+        <form>
+          <label id="cdate" style="font-size:30px;">当前日期：2013-07-01</label>
+          <br />
+          <input type="date" id="in_date" value="2017-01-31"/>
+          <br />
+          <input type="button" id="in_btn" value="查看当前日期的热力图" onclick="getCurDateHeat()" />
+          <br />
+          <input type="button" id="out_btn" value="显示当日TOP 10的路径" onclick="plotCurPath()"/>
+          <br />
+          <input type="date" id="out_date" value="2017-03-31"/>
+          <br />
+          <input type="button" id="out_btn" value="生成热力图变化" onclick="getHeatChange()" />
+          <br />
+          <input type="button" id="out_btn" value="生成路径变化" onclick="plotCurPathChange()" />
+          <br />
+        </form>
+       </div>
+       <div id="container_right" style="height: 100%; width: 40%;margin: 0;"></div>
+       <div id="container_left" style="height: 100%; width: 40%;margin: 0;"></div>
+       <script type="text/javascript">
+           var zoomSize = 13;
+           var zoomSize1 = 14;
+           var point_ = new BMap.Point(-73.968356,40.733259);
+           var radius = 10;
+           var countMax = 50;
+       </script>
+       <script type="text/javascript">
+            var curDate = document.getElementById("in_date").value;  //2017-07-01
+            // alert(curDate);
+            var dateList = curDate.split("-");
+            var year = dateList[0];
+            var month = dateList[1];
+            var day = dateList[2];
+            // new Date中月份是从0开始索引的:3 => 2
+            curDate = new Date(year,month-1,day);
+            var minDate = new Date(2013,6,01);
+            var maxDate = new Date(2017,2,31);
+            // alert(curDate+minDate+maxDate)
+            if(curDate < minDate || curDate > maxDate){
+                alert("您输入的日期没有数据，请输入2013/07/01~2017/03/31之间的日期！");
+            }
+            var startJsonFile = "./json/" + year + month + "/" + day + "_start.json"
+            var endJsonFile = "./json/" + year + month + "/" + day + "_end.json"
+            
+            var map = new BMap.Map("container_left");          // 创建地图实例
+            var point = new BMap.Point(-73.990311,40.720438);
+            map.centerAndZoom(point, zoomSize); // 初始化地图，设置中心点坐标和地图级别
+            map.enableScrollWheelZoom(); // 允许滚轮缩放
+            $.getJSON("01_end.json", function (data) {
+                    var points = data;
+                    heatmapOverlay = new BMapLib.HeatmapOverlay({"radius":radius});
+                    map.addOverlay(heatmapOverlay);
+                    heatmapOverlay.setDataSet({data:points,max:countMax});
+                    //是否显示热力图
+                    heatmapOverlay.show();
+            });
+
+            var map1 = new BMap.Map("container_right");          // 创建地图实例
+            var point1 = new BMap.Point(-73.990311,40.720438);
+            map1.centerAndZoom(point1, zoomSize); // 初始化地图，设置中心点坐标和地图级别
+            map1.enableScrollWheelZoom(); // 允许滚轮缩放
+            $.getJSON("01_end.json", function (data) {
+                    var points1 = data;
+                    heatmapOverlay1 = new BMapLib.HeatmapOverlay({"radius":radius});
+                    map1.addOverlay(heatmapOverlay1);
+                    heatmapOverlay1.setDataSet({data:points1,max:countMax});
+                    //是否显示热力图
+                    heatmapOverlay1.show();           
+            });
+
+            var cr = new BMap.CopyrightControl({anchor: BMAP_ANCHOR_TOP_LEFT});   //设置字符提示控件位置
+            map.addControl(cr); //添加字符提示控件
+            var bs = map.getBounds();   //返回地图可视区域
+            cr.addCopyright({id: 1, content: "<a style='font-size:22px;background:orange;color:#3399CC'>单车驶入记录</a>", bounds: bs}); 
+            var mapType = new BMap.MapTypeControl({anchor: BMAP_ANCHOR_TOP_RIGHT});
+            map.addControl(mapType);
+
+            var cr1 = new BMap.CopyrightControl({anchor: BMAP_ANCHOR_TOP_LEFT});   //设置字符提示控件位置
+            map1.addControl(cr1); //添加字符提示控件
+            var bs1 = map1.getBounds();   //返回地图可视区域
+            cr1.addCopyright({id: 2, content: "<a style='font-size:22px;background:orange;color:#3399CC'>单车驶出记录</a>", bounds: bs1}); 
+            var mapType1 = new BMap.MapTypeControl({anchor: BMAP_ANCHOR_TOP_RIGHT});
+            map1.addControl(mapType1);
+
+            var lineList = new Array();//记录要绘制的线
+            var arrowLineList = new Array();//记录绘制的箭头线
+            var pointList = new Array();//记录初始位置和结束位置的点
+            var isFirstLoad = false;//是否是第一次加载，第一次加载不触发清除事件
+            var arrowLineLengthRate = 15 / 10;//15是你初始时设置的地图显示范围，10是你初始时设置的箭头的长度，当地图放大缩小时保证箭头线长度一致
+       </script>
+       <script type="text/javascript" src="./js/citibike04.js"></script>
+   </body>
+</html>
